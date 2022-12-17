@@ -57,7 +57,11 @@ async function handleEvent(event) {
   let groupCanReply = false
 
   // clear cache
-  if (['清除', '清除緩存', 'clear'].includes(event.message.text)) {
+  if ([
+    '清除', '清除緩存',
+    '/clear', '/reset',
+    'clear', 'reset',
+  ].includes(event.message.text)) {
     redis.del(`linebot_user:${sourceId}`)
 
     return linebot.replyMessage(event.replyToken, {
