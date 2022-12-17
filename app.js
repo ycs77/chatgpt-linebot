@@ -81,11 +81,7 @@ async function handleEvent(event) {
 
   // echo message with ChatGPT
   if (event.source.type === 'user' || groupCanReply) {
-    redis.lPush(`linebot_user:${sourceId}`, userMessage)
-    redis.expire(`linebot_user:${sourceId}`, 60 * 60 * 1) // expires in 1 hour
-    const cacheMessages = await redis.lRange(`linebot_user:${sourceId}`, 0, -1)
-
-    const aiMessage = await ask(cacheMessages, sourceId)
+    const aiMessage = await ask(userMessage, sourceId)
 
     console.log(c.green(`[user]: ${userMessage}`))
     console.log(c.blue(`[AI]: ${aiMessage}`))
@@ -100,15 +96,32 @@ async function handleEvent(event) {
   return Promise.resolve(null)
 }
 
-async function ask(message, userId) {
+async function ask(message, sourceId) {
+  let messagesStr = await redis.get(`linebot_user:${sourceId}`) || ''
+  if (messagesStr) {
+    messagesStr += '\n'
+  }
+  messagesStr += `Human: ${message}\nAI: `
+
   const completion = await openai.createCompletion({
     model: 'text-davinci-003',
-    prompt: message,
+    prompt: messagesStr,
+    temperature: 0.9,
     max_tokens: 500,
-    user: userId,
+    frequency_penalty: 0,
+    presence_penalty: 0.6,
+    stop: [' Human:', ' AI:'],
+    user: sourceId,
   })
 
-  return completion.data.choices[0].text.trim()
+  const aiMessage = completion.data.choices[0].text.trim()
+
+  messagesStr += aiMessage
+
+  redis.set(`linebot_user:${sourceId}`, messagesStr)
+  redis.expire(`linebot_user:${sourceId}`, 60 * 60 * 1) // expires in 1 hour
+
+  return aiMessage
 }
 
 const port = process.env.PORT || 3000

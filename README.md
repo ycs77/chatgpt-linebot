@@ -11,3 +11,35 @@
 ### ChatGPT
 
 開啟 [API keys - OpenAI API](https://beta.openai.com/account/api-keys) 新增一個 API 金鑰。
+
+## 啟動
+
+複製 .env 檔並將取得的金鑰貼進去：
+
+```bash
+cp .env.example .env
+```
+
+這個機器人還使用到 Redis 暫存對話資料，需要事先啟動好 Redis。
+
+然後本地安裝和啟動：
+
+```bash
+yarn
+yarn dev
+```
+
+## 使用
+
+發送以下關鍵字可以清除對話暫存資料：
+
+* `清除`
+* `清除緩存`
+* `/clear`
+* `/reset`
+
+在群組中需要加上 `/chat` 機器人才會回話，例如：
+
+```
+/chat 請問1+1等於幾?
+```
