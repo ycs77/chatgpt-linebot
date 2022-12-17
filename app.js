@@ -54,6 +54,7 @@ async function handleEvent(event) {
 
   let userMessage = event.message.text
   const sourceId = event.source.groupId || event.source.userId
+
   let groupCanReply = false
 
   // clear cache
@@ -61,7 +62,7 @@ async function handleEvent(event) {
     '清除', '清除緩存',
     '/clear', '/reset',
     'clear', 'reset',
-  ].includes(event.message.text)) {
+  ].includes(userMessage)) {
     redis.del(`linebot_user:${sourceId}`)
 
     return linebot.replyMessage(event.replyToken, {
@@ -70,6 +71,46 @@ async function handleEvent(event) {
     })
   }
 
+  // set train message
+  if (userMessage.startsWith('/set-train')) {
+    userMessage = userMessage.replace(/^\/set-train/, '').trim()
+
+    redis.set(`linebot_user_train:${sourceId}`, userMessage)
+
+    return linebot.replyMessage(event.replyToken, {
+      type: 'text',
+      text: '設定完成~',
+    })
+  }
+
+  // get train message
+  if (userMessage === '/get-train') {
+    const trainMessage = await redis.get(`linebot_user_train:${sourceId}`)
+
+    if (trainMessage) {
+      return linebot.replyMessage(event.replyToken, {
+        type: 'text',
+        text: trainMessage,
+      })
+    }
+
+    return linebot.replyMessage(event.replyToken, {
+      type: 'text',
+      text: '請使用 "/set-train 輸入一段文字" 來設定訊息文字',
+    })
+  }
+
+  // set train message
+  if (userMessage === '/del-train') {
+    redis.del(`linebot_user_train:${sourceId}`)
+
+    return linebot.replyMessage(event.replyToken, {
+      type: 'text',
+      text: '清除完成~',
+    })
+  }
+
+  // get message from group
   const groupStartKeyword = ['/chat', 'ChatGPT', 'chatgpt']
   if (event.source.type === 'group') {
     const keyword = groupStartKeyword.find(text => userMessage.startsWith(text))
@@ -97,6 +138,10 @@ async function handleEvent(event) {
 }
 
 async function ask(message, sourceId) {
+  const trainMessage = await redis.get(`linebot_user_train:${sourceId}`)
+
+  const trainMessageStr = trainMessage ? `Human: ${trainMessage}\nAI: \n` : ''
+
   let messagesStr = await redis.get(`linebot_user:${sourceId}`) || ''
   if (messagesStr) {
     messagesStr += '\n'
@@ -105,7 +150,7 @@ async function ask(message, sourceId) {
 
   const completion = await openai.createCompletion({
     model: 'text-davinci-003',
-    prompt: messagesStr,
+    prompt: trainMessageStr + messagesStr,
     temperature: 0.9,
     max_tokens: 500,
     frequency_penalty: 0,
