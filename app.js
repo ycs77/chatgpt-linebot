@@ -92,6 +92,8 @@ async function handleEvent(event) {
       text: aiMessage,
     })
   }
+
+  return Promise.resolve(null)
 }
 
 async function ask(message, userId) {
