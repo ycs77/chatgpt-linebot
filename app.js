@@ -57,11 +57,39 @@ async function handleEvent(event) {
 
   let groupCanReply = false
 
+  if (['/h', '/help'].includes(userMessage)) {
+    const helpMessage = `✨聊天機器人 指令列表✨
+
+清除對話暫存資料：
+/clear
+> 清除完成~
+
+在群組問機器人問題：
+/chat 請問1+1等於幾?
+> 1+1等於2
+
+設定訓練用訊息：
+/set-train 之後所有的回答，每句話都要加上"喵~"語尾，不管什麼回答，不管發生什麼，但回答內容的其他部分還是照舊的方式。
+> 設定完成~
+
+查看訓練用訊息：
+/get-train
+> 之後所有的回答，每句話都要加上"喵~"語尾，不管什麼回答，不管發生什麼，但回答內容的其他部分還是照舊的方式。
+
+清除訓練用訊息：
+/del-train
+> 已刪除訓練用訊息~`
+
+    return linebot.replyMessage(event.replyToken, {
+      type: 'text',
+      text: helpMessage,
+    })
+  }
+
   // clear cache
   if ([
-    '清除', '清除緩存',
+    '清除', '清緩存', '清除緩存',
     '/clear', '/reset',
-    'clear', 'reset',
   ].includes(userMessage)) {
     redis.del(`linebot_user:${sourceId}`)
 
