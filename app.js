@@ -27,10 +27,6 @@ const redis = createRedisClient({
 // Express instance
 const app = express()
 
-app.get('/', (req, res) => {
-  res.send('Hello World!')
-})
-
 app.post('/callback', LINE.middleware(lineConfig), async (req, res) => {
   await redis.connect()
 
@@ -167,7 +163,6 @@ async function handleEvent(event) {
 
 async function ask(message, sourceId) {
   const trainMessage = await redis.get(`linebot_user_train:${sourceId}`)
-
   const trainMessageStr = trainMessage ? `Human: ${trainMessage}\nAI: \n` : ''
 
   let messagesStr = await redis.get(`linebot_user:${sourceId}`) || ''
