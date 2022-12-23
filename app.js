@@ -85,7 +85,7 @@ async function handleEvent(event) {
   // clear cache
   if ([
     '清除', '清緩存', '清除緩存',
-    '/clear', '/reset',
+    '/clear',
   ].includes(userMessage)) {
     redis.del(`linebot_user:${sourceId}`)
 

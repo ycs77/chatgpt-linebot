@@ -1,8 +1,14 @@
 # ChatGPT (GPT-3) LINE 聊天機器人
 
 > 參考自文章 [用 Node.js 建立你的第一個 LINE Bot 聊天機器人以 OpenAI GPT-3 為例](https://israynotarray.com/nodejs/20221210/122482
->
-> 後來仔細看了文章(標題)之後才發現，其實這是 OpenAI GPT-3 的 API，不是 ChatGPT 的，不過這個倉庫應該只有我自己用...吧！？就不改 repo 名稱了。
+
+> 後來仔細看了文章(標題)之後才發現，其實這是 OpenAI GPT-3 的 API，不是 ChatGPT，不過這個倉庫應該只有我自己用...吧！？就不改 repo 名稱了。
+
+<img src="https://pbs.twimg.com/media/FkV1qicacAIbjYN?format=jpg&name=medium" width="240" /> <img src="https://pbs.twimg.com/media/FkV1qjtakAEMS0j?format=jpg&name=medium" width="240" />
+
+👉 使用心得和教學連結等在[我的這篇推文](https://twitter.com/ycs77_lucas/status/1604821352934182915)
+
+不過這樣上下文的字數會疊加的很快，額度會扣得很兇，詳情可以參考[這篇文章](https://jcyh.work/chatgpt-integration-with-linebot/)的解釋。在這個 repo 中我使用的解決方法是：在沒有對話後1小時會自動清除，或輸入 `/clear` 指令來強制清除對話紀錄。雖然不是最好的辦法，將就著用吧！
 
 ## 申請金鑰
 
@@ -22,7 +28,7 @@
 cp .env.example .env
 ```
 
-這個機器人還使用到 Redis 暫存對話資料，需要事先啟動好 Redis。
+這個機器人還使用到 Redis 暫存對話資料，需要事先啟動好 Redis。(文章裡介紹的 Render 免費服務裡可以開 redis 來用~)
 
 然後本地安裝和啟動：
 
@@ -38,7 +44,6 @@ yarn dev
 * `清除`
 * `清除緩存`
 * `/clear`
-* `/reset`
 
 在群組中需要加上 `/chat` 機器人才會回話，例如：
 
