@@ -135,7 +135,7 @@ async function handleEvent(event) {
   }
 
   // get message from group
-  const groupStartKeyword = ['/chat', 'ChatGPT', 'chatgpt']
+  const groupStartKeyword = ['/chat']
   if (event.source.type === 'group') {
     const keyword = groupStartKeyword.find(text => userMessage.startsWith(text))
     if (keyword) {
@@ -144,7 +144,7 @@ async function handleEvent(event) {
     }
   }
 
-  // echo message with ChatGPT
+  // echo message with GPT-3
   if (event.source.type === 'user' || groupCanReply) {
     const aiMessage = await ask(userMessage, sourceId)
 
