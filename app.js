@@ -54,7 +54,7 @@ async function handleEvent(event) {
   let groupCanReply = false
 
   if (['/h', '/help'].includes(userMessage)) {
-    const helpMessage = `✨聊天機器人 指令列表✨
+    let helpMessage = `✨聊天機器人 指令列表✨
 
 清除對話暫存資料：
 /clear
@@ -72,6 +72,16 @@ async function handleEvent(event) {
 
 清除訓練用訊息：
 /del-train`
+
+    if (event.source.type === 'group') {
+      helpMessage += `
+
+在群組中跳過 /chat 指令來與機器人問答：
+/skip-chat-flag
+
+在群組恢復使用 /chat 指令：
+/no-skip-chat-flag`
+    }
 
     return linebot.replyMessage(event.replyToken, {
       type: 'text',
@@ -131,13 +141,38 @@ async function handleEvent(event) {
     })
   }
 
+  // skip `/chat` flag
+  if (userMessage === '/skip-chat-flag' && event.source.type === 'group') {
+    redis.set(`linebot_group_skip_chat_flag:${sourceId}`, 1)
+
+    return linebot.replyMessage(event.replyToken, {
+      type: 'text',
+      text: '之後將可以不用輸入 /chat 指令~',
+    })
+  }
+
+  // no skip `/chat` flag
+  if (userMessage === '/no-skip-chat-flag' && event.source.type === 'group') {
+    redis.del(`linebot_group_skip_chat_flag:${sourceId}`)
+
+    return linebot.replyMessage(event.replyToken, {
+      type: 'text',
+      text: '之後恢復需要輸入 /chat 指令~',
+    })
+  }
+
   // get message from group
   const groupStartKeyword = ['/chat']
   if (event.source.type === 'group') {
-    const keyword = groupStartKeyword.find(text => userMessage.startsWith(text))
-    if (keyword) {
-      userMessage = userMessage.replace(new RegExp(`^${keyword}`), '').trim()
+    const canSkipChat = Boolean(await redis.exists(`linebot_group_skip_chat_flag:${sourceId}`))
+    if (canSkipChat) {
       groupCanReply = true
+    } else {
+      const keyword = groupStartKeyword.find(text => userMessage.startsWith(text))
+      if (keyword) {
+        userMessage = userMessage.replace(new RegExp(`^${keyword}`), '').trim()
+        groupCanReply = true
+      }
     }
   }
 
