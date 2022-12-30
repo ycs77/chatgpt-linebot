@@ -1,6 +1,6 @@
 # ChatGPT (GPT-3) LINE 聊天機器人
 
-> 參考自文章 [用 Node.js 建立你的第一個 LINE Bot 聊天機器人以 OpenAI GPT-3 為例](https://israynotarray.com/nodejs/20221210/122482
+> 參考自文章 [用 Node.js 建立你的第一個 LINE Bot 聊天機器人以 OpenAI GPT-3 為例](https://israynotarray.com/nodejs/20221210/1224824056/)
 
 > 後來仔細看了文章(標題)之後才發現，其實這是 OpenAI GPT-3 的 API，不是 ChatGPT，不過這個倉庫應該只有我自己用...吧！？就不改 repo 名稱了。
 
