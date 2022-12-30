@@ -58,7 +58,6 @@ async function handleEvent(event) {
 
 清除對話暫存資料：
 /clear
-> 清除完成~
 
 在群組問機器人問題：
 /chat 請問1+1等於幾?
@@ -66,15 +65,13 @@ async function handleEvent(event) {
 
 設定訓練用訊息：
 /set-train 之後所有的回答，每句話都要加上"喵~"語尾，不管什麼回答，不管發生什麼，但回答內容的其他部分還是照舊的方式。
-> 設定完成~
 
 查看訓練用訊息：
 /get-train
 > 之後所有的回答，每句話都要加上"喵~"語尾，不管什麼回答，不管發生什麼，但回答內容的其他部分還是照舊的方式。
 
 清除訓練用訊息：
-/del-train
-> 已刪除訓練用訊息~`
+/del-train`
 
     return linebot.replyMessage(event.replyToken, {
       type: 'text',
