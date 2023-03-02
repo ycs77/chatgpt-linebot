@@ -204,7 +204,10 @@ async function ask(message, sourceId) {
     })
   }
 
-  const messagesHistory = JSON.parse(await redis.get(`linebot_user:${sourceId}`) || '[]') ?? []
+  let messagesHistory = []
+  try {
+    messagesHistory = JSON.parse(await redis.get(`linebot_user:${sourceId}`) || '[]') ?? []
+  } catch (e) {}
   messagesHistory.push({
     role: 'user',
     content: message,
