@@ -2,8 +2,6 @@
 
 > 參考自文章 [用 Node.js 建立你的第一個 LINE Bot 聊天機器人以 OpenAI GPT-3 為例](https://israynotarray.com/nodejs/20221210/1224824056/)
 
-> 後來仔細看了文章(標題)之後才發現，其實這是 OpenAI GPT-3 的 API，不是 ChatGPT，不過這個倉庫應該只有我自己用...吧！？就不改 repo 名稱了。
-
 <img src="https://pbs.twimg.com/media/FkV1qicacAIbjYN?format=jpg&name=medium" width="240" /> <img src="https://pbs.twimg.com/media/FkV1qjtakAEMS0j?format=jpg&name=medium" width="240" />
 
 👉 使用心得和教學連結等在[我的這篇推文](https://twitter.com/ycs77_lucas/status/1604821352934182915)

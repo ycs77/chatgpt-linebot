@@ -181,7 +181,7 @@ async function handleEvent(event) {
     const aiMessage = await ask(userMessage, sourceId)
 
     console.log(c.green(`[user]: ${userMessage}`))
-    console.log(c.blue(`[AI]: ${aiMessage}`))
+    console.log(c.blue(`[assistant]: ${aiMessage}`))
 
     // use reply API
     return linebot.replyMessage(event.replyToken, {
@@ -194,34 +194,45 @@ async function handleEvent(event) {
 }
 
 async function ask(message, sourceId) {
+  const messages = []
+
   const trainMessage = await redis.get(`linebot_user_train:${sourceId}`)
-  const trainMessageStr = trainMessage ? `Human: ${trainMessage}\nAI: \n` : ''
-
-  let messagesStr = await redis.get(`linebot_user:${sourceId}`) || ''
-  if (messagesStr) {
-    messagesStr += '\n'
+  if (trainMessage) {
+    messages.push({
+      role: 'user',
+      content: trainMessage,
+    })
   }
-  messagesStr += `Human: ${message}\nAI: `
 
-  const completion = await openai.createCompletion({
-    model: 'text-davinci-003',
-    prompt: trainMessageStr + messagesStr,
+  const messagesHistory = JSON.parse(await redis.get(`linebot_user:${sourceId}`) || '[]') ?? []
+  messagesHistory.push({
+    role: 'user',
+    content: message,
+  })
+  messages.push(...messagesHistory)
+
+  const completion = await openai.createChatCompletion({
+    model: 'gpt-3.5-turbo',
+    messages,
     temperature: 0.9,
-    max_tokens: 500,
+    max_tokens: 1000,
     frequency_penalty: 0,
     presence_penalty: 0.6,
-    stop: [' Human:', ' AI:'],
     user: sourceId,
   })
 
-  const aiMessage = completion.data.choices[0].text.trim()
+  const aiMessage = completion.data.choices[0].message
+  aiMessage.content = aiMessage.content
+    .trim()
+    .replace(/^\n+/, '')
+    .replace(/\n+$/, '')
 
-  messagesStr += aiMessage
+  messagesHistory.push(aiMessage)
 
-  redis.set(`linebot_user:${sourceId}`, messagesStr)
+  redis.set(`linebot_user:${sourceId}`, JSON.stringify(messagesHistory))
   redis.expire(`linebot_user:${sourceId}`, 60 * 60 * 1) // expires in 1 hour
 
-  return aiMessage
+  return aiMessage.content
 }
 
 const port = process.env.PORT || 3000
