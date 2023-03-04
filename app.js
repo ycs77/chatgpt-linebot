@@ -178,7 +178,10 @@ async function handleEvent(event) {
 
   // echo message with GPT-3
   if (event.source.type === 'user' || groupCanReply) {
-    const aiMessage = await ask(userMessage, sourceId)
+    const aiMessage =
+      process.env.OPENAI_MODEL?.startsWith('gpt-3.5-turbo') || !process.env.OPENAI_MODEL
+        ? await askByChatGPT(userMessage, sourceId)
+        : await askByGPT3(userMessage, sourceId)
 
     console.log(c.green(`[user]: ${userMessage}`))
     console.log(c.blue(`[assistant]: ${aiMessage}`))
@@ -193,7 +196,38 @@ async function handleEvent(event) {
   return Promise.resolve(null)
 }
 
-async function ask(message, sourceId) {
+async function askByGPT3(message, sourceId) {
+  const trainMessage = await redis.get(`linebot_user_train:${sourceId}`)
+  const trainMessageStr = trainMessage ? `Human: ${trainMessage}\nAI: \n` : ''
+
+  let messagesStr = await redis.get(`linebot_user:${sourceId}`) || ''
+  if (messagesStr) {
+    messagesStr += '\n'
+  }
+  messagesStr += `Human: ${message}\nAI: `
+
+  const completion = await openai.createCompletion({
+    model: process.env.OPENAI_MODEL || 'text-davinci-003',
+    prompt: trainMessageStr + messagesStr,
+    temperature: 0.9,
+    max_tokens: 1000,
+    frequency_penalty: 0,
+    presence_penalty: 0.6,
+    stop: [' Human:', ' AI:'],
+    user: sourceId,
+  })
+
+  const aiMessage = completion.data.choices[0].text.trim()
+
+  messagesStr += aiMessage
+
+  redis.set(`linebot_user:${sourceId}`, messagesStr)
+  redis.expire(`linebot_user:${sourceId}`, 60 * 60 * 1) // expires in 1 hour
+
+  return aiMessage
+}
+
+async function askByChatGPT(message, sourceId) {
   const messages = []
 
   const trainMessage = await redis.get(`linebot_user_train:${sourceId}`)
@@ -215,7 +249,7 @@ async function ask(message, sourceId) {
   messages.push(...messagesHistory)
 
   const completion = await openai.createChatCompletion({
-    model: 'gpt-3.5-turbo',
+    model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
     messages,
     temperature: 0.9,
     max_tokens: 1000,
