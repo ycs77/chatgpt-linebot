@@ -49,6 +49,19 @@ yarn dev
 /chat 請問1+1等於幾?
 ```
 
+產生圖片：
+
+```
+/image the beautiful sky
+```
+
+預設圖片解析度是 256x256，如果要較高解析度可以輸入 512 或 1024：
+
+```
+/image 512 the beautiful sky
+/image 1024 the beautiful sky
+```
+
 設定訓練用訊息：
 
 ```
@@ -62,4 +75,4 @@ yarn dev
 > 清除完成~
 ```
 
-目前除了文字之外，也支援接收音訊檔，會先轉給 [Whisper](https://openai.com/research/whisper) 來轉成文字再丟給 ChatGPT 回答。
+現在除了文字之外，也支援接收音訊檔，會丟給 [Whisper](https://openai.com/research/whisper) 來轉成文字再讓 ChatGPT 回答。
