@@ -43,8 +43,10 @@ app.post('/callback', LINE.middleware(lineConfig), async (req, res) => {
 })
 
 async function handleEvent(event) {
-  if (event.type !== 'message' || event.message.type !== 'text') {
-    // ignore non-text-message event
+  if (event.type !== 'message' ||
+      event.message.type !== 'text' && event.message.type !== 'audio'
+  ) {
+    // ignore non text/audio message event
     return Promise.resolve(null)
   }
 
@@ -52,8 +54,9 @@ async function handleEvent(event) {
   const sourceId = event.source.groupId || event.source.userId
 
   let groupCanReply = false
+  let audioCanReply = false
 
-  if (['/h', '/help'].includes(userMessage)) {
+  if (event.message.type === 'text' && ['/h', '/help'].includes(userMessage)) {
     let helpMessage = `✨聊天機器人 指令列表✨
 
 清除對話暫存資料：
@@ -90,10 +93,9 @@ async function handleEvent(event) {
   }
 
   // clear cache
-  if ([
-    '清除', '清緩存', '清除緩存',
-    '/clear',
-  ].includes(userMessage)) {
+  if (event.message.type === 'text' &&
+    ['清除', '清緩存', '清除緩存', '/clear'].includes(userMessage)
+  ) {
     redis.del(`linebot_user:${sourceId}`)
 
     return linebot.replyMessage(event.replyToken, {
@@ -103,7 +105,7 @@ async function handleEvent(event) {
   }
 
   // set train message
-  if (userMessage.startsWith('/set-train')) {
+  if (event.message.type === 'text' && userMessage.startsWith('/set-train')) {
     userMessage = userMessage.replace(/^\/set-train/, '').trim()
 
     redis.set(`linebot_user_train:${sourceId}`, userMessage)
@@ -115,7 +117,7 @@ async function handleEvent(event) {
   }
 
   // get train message
-  if (userMessage === '/get-train') {
+  if (event.message.type === 'text' && userMessage === '/get-train') {
     const trainMessage = await redis.get(`linebot_user_train:${sourceId}`)
 
     if (trainMessage) {
@@ -132,7 +134,7 @@ async function handleEvent(event) {
   }
 
   // set train message
-  if (userMessage === '/del-train') {
+  if (event.message.type === 'text' && userMessage === '/del-train') {
     redis.del(`linebot_user_train:${sourceId}`)
 
     return linebot.replyMessage(event.replyToken, {
@@ -142,7 +144,7 @@ async function handleEvent(event) {
   }
 
   // skip `/chat` flag
-  if (userMessage === '/skip-chat-flag' && event.source.type === 'group') {
+  if (event.source.type === 'group' && userMessage === '/skip-chat-flag') {
     redis.set(`linebot_group_skip_chat_flag:${sourceId}`, 1)
 
     return linebot.replyMessage(event.replyToken, {
@@ -152,7 +154,7 @@ async function handleEvent(event) {
   }
 
   // no skip `/chat` flag
-  if (userMessage === '/no-skip-chat-flag' && event.source.type === 'group') {
+  if (event.source.type === 'group' && userMessage === '/no-skip-chat-flag') {
     redis.del(`linebot_group_skip_chat_flag:${sourceId}`)
 
     return linebot.replyMessage(event.replyToken, {
@@ -176,14 +178,36 @@ async function handleEvent(event) {
     }
   }
 
+  // resolve audio message
+  if (event.message.type === 'audio') {
+    let content
+
+    if (event.message.contentProvider.type === 'line') {
+      content = await linebot.getMessageContent(event.message.id)
+      content.path = 'audio.m4a'
+    }
+
+    if (content) {
+      userMessage = await resolveAudioByWhisper(content)
+      audioCanReply = true
+    }
+  }
+
   // echo message with GPT-3
-  if (event.source.type === 'user' || groupCanReply) {
+  if ((event.source.type === 'user' || groupCanReply || audioCanReply) &&
+      userMessage
+  ) {
     const aiMessage =
       process.env.OPENAI_MODEL?.startsWith('gpt-3.5-turbo') || !process.env.OPENAI_MODEL
         ? await askByChatGPT(userMessage, sourceId)
         : await askByGPT3(userMessage, sourceId)
 
-    console.log(c.green(`[user]: ${userMessage}`))
+    let userSuffix = ''
+
+    if (event.message.type === 'audio')
+      userSuffix = ' (audio)'
+
+    console.log(c.green(`[user${userSuffix}]: ${userMessage}`))
     console.log(c.blue(`[assistant]: ${aiMessage}`))
 
     // use reply API
@@ -270,6 +294,11 @@ async function askByChatGPT(message, sourceId) {
   redis.expire(`linebot_user:${sourceId}`, 60 * 60 * 1) // expires in 1 hour
 
   return aiMessage.content
+}
+
+async function resolveAudioByWhisper(content) {
+  const { data } = await openai.createTranscription(content, 'whisper-1')
+  return data.text
 }
 
 const port = process.env.PORT || 3000

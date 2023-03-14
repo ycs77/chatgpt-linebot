@@ -61,3 +61,5 @@ yarn dev
 /del-train
 > 清除完成~
 ```
+
+目前除了文字之外，也支援接收音訊檔，會先轉給 [Whisper](https://openai.com/research/whisper) 來轉成文字再丟給 ChatGPT 回答。
