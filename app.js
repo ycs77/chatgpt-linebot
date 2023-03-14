@@ -4,7 +4,10 @@ const express = require('express')
 const { createClient: createRedisClient } = require('redis')
 const LINE = require('@line/bot-sdk')
 const { Configuration, OpenAIApi } = require('openai')
+const axios = require('axios').default
+const sharp = require('sharp')
 const c = require('chalk')
+const { sign, verify } = require('./sign')
 
 // OpenAI instance
 const openAiConfig = new Configuration({
@@ -42,6 +45,38 @@ app.post('/callback', LINE.middleware(lineConfig), async (req, res) => {
     })
 })
 
+app.get('/preview-image/:hash/:url', async (req, res) => {
+  const signed = req.params.hash
+  const url = req.params.url
+
+  if (verify(encodeURIComponent(url), signed)) {
+    try {
+      const { data, headers } = await axios.get(url, {
+        responseType: 'arraybuffer',
+      })
+
+      let imageBuffer = data
+      // 如果圖片大於 1MB，就縮小圖片
+      if (parseInt(headers['content-length']) > (1024 * 1024)) {
+        imageBuffer = await sharp(data)
+          .resize(512, 512)
+          .toBuffer()
+      }
+
+      res.setHeader('Content-Length', headers['content-length'])
+      res.setHeader('Content-Type', headers['content-type'])
+      res.send(imageBuffer)
+    } catch (err) {
+      console.error(err)
+    }
+
+    return
+  }
+
+  res.status(404)
+  res.send('Not found')
+})
+
 async function handleEvent(event) {
   if (event.type !== 'message' ||
       event.message.type !== 'text' && event.message.type !== 'audio'
@@ -56,7 +91,7 @@ async function handleEvent(event) {
   let groupCanReply = false
   let audioCanReply = false
 
-  if (event.message.type === 'text' && ['/h', '/help'].includes(userMessage)) {
+  if (event.message.type === 'text' && ['help', '/h', '/help'].includes(userMessage)) {
     let helpMessage = `✨聊天機器人 指令列表✨
 
 清除對話暫存資料：
@@ -65,6 +100,12 @@ async function handleEvent(event) {
 在群組問機器人問題：
 /chat 請問1+1等於幾?
 > 1+1等於2
+
+產生圖片：
+/image the beautiful sky
+預設圖片解析度是 256x256，如果要較高解析度可以輸入 512 或 1024：
+/image 512 the beautiful sky
+/image 1024 the beautiful sky
 
 設定訓練用訊息：
 /set-train 之後所有的回答，每句話都要加上"喵~"語尾，不管什麼回答，不管發生什麼，但回答內容的其他部分還是照舊的方式。
@@ -141,6 +182,27 @@ async function handleEvent(event) {
       type: 'text',
       text: '清除完成~',
     })
+  }
+
+  // generate image
+  if (event.message.type === 'text' && userMessage.startsWith('/image ')) {
+    let prompt = userMessage.slice('/image '.length)
+    let size
+    if (prompt.startsWith('256 ') || prompt.startsWith('512 ') || prompt.startsWith('1024 ')) {
+      size = prompt.match(/^(\d{3,4}) /)[1]
+      prompt = prompt.slice(size.length + 1)
+    }
+    const urls = await generateImageByGPT3(prompt, `${size}x${size}`)
+    console.log(c.green(`[user (image)]: ${prompt}`))
+    return linebot.replyMessage(event.replyToken, urls.map(url => {
+      console.log(c.blue(`[assistant]: ${url}`))
+      const hash = sign(encodeURIComponent(url))
+      return {
+        type: 'image',
+        originalContentUrl: url,
+        previewImageUrl: `${process.env.APP_URL.replace(/\/$/, '')}/preview-image/${hash}/${encodeURIComponent(url)}`,
+      }
+    }))
   }
 
   // skip `/chat` flag
@@ -299,6 +361,15 @@ async function askByChatGPT(message, sourceId) {
 async function resolveAudioByWhisper(content) {
   const { data } = await openai.createTranscription(content, 'whisper-1')
   return data.text
+}
+
+async function generateImageByGPT3(message, size) {
+  const { data } = await openai.createImage({
+    prompt: message,
+    n: 1,
+    size: size ?? '256x256',
+  })
+  return data.data.map(({ url }) => url)
 }
 
 const port = process.env.PORT || 3000
