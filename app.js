@@ -300,7 +300,6 @@ async function askByGPT3(message, sourceId) {
     frequency_penalty: 0,
     presence_penalty: 0.6,
     stop: [' Human:', ' AI:'],
-    user: sourceId,
   })
 
   const aiMessage = completion.data.choices[0].text.trim()
@@ -341,7 +340,6 @@ async function askByChatGPT(message, sourceId) {
     max_tokens: 1000,
     frequency_penalty: 0,
     presence_penalty: 0.6,
-    user: sourceId,
   })
 
   const aiMessage = completion.data.choices[0].message
