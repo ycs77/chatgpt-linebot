@@ -318,7 +318,7 @@ async function askByChatGPT(message, sourceId) {
   const trainMessage = await redis.get(`linebot_user_train:${sourceId}`)
   if (trainMessage) {
     messages.push({
-      role: 'user',
+      role: 'system',
       content: trainMessage,
     })
   }
