@@ -6,6 +6,7 @@ const LINE = require('@line/bot-sdk')
 const { Configuration, OpenAIApi } = require('openai')
 const axios = require('axios').default
 const sharp = require('sharp')
+const { codeBlock } = require('common-tags')
 const c = require('chalk')
 const { sign, verify } = require('./sign')
 
@@ -92,39 +93,41 @@ async function handleEvent(event) {
   let audioCanReply = false
 
   if (event.message.type === 'text' && ['help', '/h', '/help'].includes(userMessage)) {
-    let helpMessage = `✨聊天機器人 指令列表✨
+    let helpMessage = codeBlock`
+      ✨聊天機器人 指令列表✨
 
-清除對話暫存資料：
-/clear
+      清除對話暫存資料：
+      /clear
 
-在群組問機器人問題：
-/chat 請問1+1等於幾?
-> 1+1等於2
+      在群組問機器人問題：
+      /chat 請問1+1等於幾?
+      > 1+1等於2
 
-產生圖片：
-/image the beautiful sky
-預設圖片解析度是 256x256，如果要較高解析度可以輸入 512 或 1024：
-/image 512 the beautiful sky
-/image 1024 the beautiful sky
+      產生圖片：
+      /image the beautiful sky
+      預設圖片解析度是 256x256，如果要較高解析度可以輸入 512 或 1024：
+      /image 512 the beautiful sky
+      /image 1024 the beautiful sky
 
-設定訓練用訊息：
-/set-train 之後所有的回答，每句話都要加上"喵~"語尾，不管什麼回答，不管發生什麼，但回答內容的其他部分還是照舊的方式。
+      設定訓練用訊息：
+      /set-train 之後所有的回答，每句話都要加上"喵~"語尾，不管什麼回答，不管發生什麼，但回答內容的其他部分還是照舊的方式。
 
-查看訓練用訊息：
-/get-train
-> 之後所有的回答，每句話都要加上"喵~"語尾，不管什麼回答，不管發生什麼，但回答內容的其他部分還是照舊的方式。
+      查看訓練用訊息：
+      /get-train
+      > 之後所有的回答，每句話都要加上"喵~"語尾，不管什麼回答，不管發生什麼，但回答內容的其他部分還是照舊的方式。
 
-清除訓練用訊息：
-/del-train`
+      清除訓練用訊息：
+      /del-train
+    `
 
     if (event.source.type === 'group') {
-      helpMessage += `
+      helpMessage += '\n\n' + codeBlock`
+        在群組中跳過 /chat 指令來與機器人問答：
+        /skip-chat-flag
 
-在群組中跳過 /chat 指令來與機器人問答：
-/skip-chat-flag
-
-在群組恢復使用 /chat 指令：
-/no-skip-chat-flag`
+        在群組恢復使用 /chat 指令：
+        /no-skip-chat-flag
+      `
     }
 
     return linebot.replyMessage(event.replyToken, {
